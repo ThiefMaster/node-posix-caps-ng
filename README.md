@@ -30,5 +30,5 @@ possibly also removing the cap altogether after binding to the privileged port:
 * `bool clear_caps()` - remove all caps
 * `string get_caps(type)` - get a string containing all set caps
 
-`type` can be one of `caps.EFFECTIVE`, `caps.PERMITTED`, `caps.INHERITABLE`.
+`type` can be one of `caps.EFFECTIVE`, `caps.PERMITTED`, `caps.INHERITABLE`.  
 `types` can be any combination (binary OR) of those flags.
