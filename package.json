@@ -1,0 +1,27 @@
+{
+    "name": "posix-caps-ng",
+    "version": "0.0.0",
+    "description": "node.js wrapper for the libcap-ng POSIX capabilities library",
+    "os": ["linux"],
+    "homepage": "https://github.com/ThiefMaster/node-posix-caps-ng",
+    "bugs": "https://github.com/ThiefMaster/node-posix-caps-ng/issues",
+    "main": "./index.js",
+    "scripts": {
+        "install": "node-gyp rebuild"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ThiefMaster/node-posix-caps-ng.git"
+    },
+    "keywords": [
+        "libcap-ng",
+        "posix",
+        "capabilities",
+        "caps"
+    ],
+    "author": {
+        "name": "Adrian Mönnich",
+        "email": "adrian@planetcoding.net"
+    },
+    "license": "BSD"
+}
