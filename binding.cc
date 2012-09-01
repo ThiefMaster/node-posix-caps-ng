@@ -135,6 +135,7 @@ void Init(Handle<Object> target) {
 	target->Set(String::NewSymbol("EFFECTIVE"), Uint32::New(CAPNG_EFFECTIVE));
 	target->Set(String::NewSymbol("PERMITTED"), Uint32::New(CAPNG_PERMITTED));
 	target->Set(String::NewSymbol("INHERITABLE"), Uint32::New(CAPNG_INHERITABLE));
+	target->Set(String::NewSymbol("ALL"), Uint32::New(CAPNG_EFFECTIVE | CAPNG_PERMITTED | CAPNG_INHERITABLE));
 	// caps
 	#define DEFINE_CAP(CAP) target->Set(String::NewSymbol(#CAP), Uint32::New(CAP))
 	DEFINE_CAP(CAP_CHOWN);
