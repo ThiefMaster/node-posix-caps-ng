@@ -15,13 +15,13 @@ root does the job.
 # Usage:
 
     var caps = require('posix-caps-ng');
-    caps.set_cap(caps.CAP_NET_ADMIN, caps.EFFECTIVE, true);
+    caps.set_cap(caps.CAP_NET_BIND_SERVICE, caps.EFFECTIVE, true);
 
 If the application does not start any child processes which also need this cap,
 it is a good idea to clear it from the *inheritable* set after enabling it and
 possibly also removing the cap altogether after binding to the privileged port:
 
-    caps.set_cap(caps.CAP_NET_ADMIN, caps.ALL, false);
+    caps.set_cap(caps.CAP_NET_BIND_SERVICE, caps.ALL, false);
 
 # Functions
 
