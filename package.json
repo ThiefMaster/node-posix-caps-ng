@@ -1,6 +1,6 @@
 {
     "name": "posix-caps-ng",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "node.js wrapper for the libcap-ng POSIX capabilities library",
     "os": ["linux"],
     "homepage": "https://github.com/ThiefMaster/node-posix-caps-ng",
