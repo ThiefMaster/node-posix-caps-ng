@@ -82,7 +82,7 @@ Handle<Value> SetCapability(const Arguments& args) {
 		ThrowException(Exception::Error(String::New("Could not update caps")));
 		return scope.Close(Undefined());
 	}
-	if(capng_apply(CAPNG_SELECT_CAPS)) {
+	if(capng_apply(CAPNG_SELECT_BOTH)) {
 		return scope.Close(False());
 	}
 	return scope.Close(True());
@@ -90,8 +90,8 @@ Handle<Value> SetCapability(const Arguments& args) {
 
 Handle<Value> ClearCapabilities(const Arguments& args) {
 	HandleScope scope;
-	capng_clear(CAPNG_SELECT_CAPS);
-	if(capng_apply(CAPNG_SELECT_CAPS)) {
+	capng_clear(CAPNG_SELECT_BOTH);
+	if(capng_apply(CAPNG_SELECT_BOTH)) {
 		return scope.Close(False());
 	}
 	return scope.Close(True());
