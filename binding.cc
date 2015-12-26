@@ -1,24 +1,23 @@
-#define BUILDING_NODE_EXTENSION
 #include <node.h>
 #include <cap-ng.h>
 #include <bitset>
 
 using namespace v8;
 
-bool CheckCapType(const Handle<Value>& arg, capng_type_t& type, bool multiple = false) {
+bool CheckCapType(Isolate *isolate, const Handle<Value>& arg, capng_type_t& type, bool multiple = false) {
 	if(!arg->IsUint32()) {
-		ThrowException(Exception::TypeError(String::New("Invalid captype type")));
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid captype type")));
 		return false;
 	}
 
 	uint32_t val = arg->Uint32Value();
 	std::bitset<3> bs(val);
 	if((uint32_t)bs.to_ulong() != val) {
-		ThrowException(Exception::TypeError(String::New("Invalid captype value")));
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid captype value")));
 		return false;
 	}
 	if(!bs.count() || (!multiple && bs.count() != 1)) {
-		ThrowException(Exception::TypeError(String::New("Invalid captype value")));
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid captype value")));
 		return false;
 	}
 
@@ -26,15 +25,15 @@ bool CheckCapType(const Handle<Value>& arg, capng_type_t& type, bool multiple = 
 	return true;
 }
 
-bool CheckCap(const Handle<Value>& arg, unsigned int& cap) {
+bool CheckCap(Isolate *isolate, const Handle<Value>& arg, unsigned int& cap) {
 	if(!arg->IsUint32()) {
-		ThrowException(Exception::TypeError(String::New("Invalid cap type")));
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid cap type")));
 		return false;
 	}
 
 	uint32_t val = arg->Uint32Value();
 	if(val > CAP_LAST_CAP) {
-		ThrowException(Exception::TypeError(String::New("Invalid cap value")));
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Invalid cap value")));
 		return false;
 	}
 
@@ -42,102 +41,101 @@ bool CheckCap(const Handle<Value>& arg, unsigned int& cap) {
 	return true;
 }
 
-Handle<Value> HaveCapability(const Arguments& args) {
-	HandleScope scope;
-	if(args.Length() < 2) {
-		ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
-		return scope.Close(Undefined());
+void HaveCapability(const v8::FunctionCallbackInfo<v8::Value>& info) {
+	Isolate *isolate = info.GetIsolate();
+	if(info.Length() < 2) {
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+		return;
 	}
 
 	unsigned int cap;
 	capng_type_t type;
-	if(!CheckCap(args[0], cap) || !CheckCapType(args[1], type)) {
-		return scope.Close(Undefined());
+	if(!CheckCap(isolate, info[0], cap) || !CheckCapType(isolate, info[1], type)) {
+		return;
 	}
 
-	return scope.Close(Boolean::New((bool)capng_have_capability(type, cap)));
+	info.GetReturnValue().Set((bool)capng_have_capability(type, cap));
 }
 
-Handle<Value> SetCapability(const Arguments& args) {
-	HandleScope scope;
-	if(args.Length() < 3) {
-		ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
-		return scope.Close(Undefined());
+void SetCapability(const v8::FunctionCallbackInfo<v8::Value>& info) {
+	Isolate *isolate = info.GetIsolate();
+	EscapableHandleScope scope(isolate);
+	if(info.Length() < 3) {
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+		return;
 	}
 
 	unsigned int cap;
 	capng_type_t type;
-	if(!CheckCap(args[0], cap) || !CheckCapType(args[1], type, true) || !args[2]->IsBoolean()) {
-		ThrowException(Exception::TypeError(String::New("Wrong arguments")));
-		return scope.Close(Undefined());
+	if(!CheckCap(isolate, info[0], cap) || !CheckCapType(isolate, info[1], type, true) || !info[2]->IsBoolean()) {
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong arguments")));
+		return;
 	}
 
-	capng_act_t action = args[2]->BooleanValue() ? CAPNG_ADD : CAPNG_DROP;
+	capng_act_t action = info[2]->BooleanValue() ? CAPNG_ADD : CAPNG_DROP;
 
 	if(capng_get_caps_process()) {
-		ThrowException(Exception::Error(String::New("Could not retrieve current caps")));
-		return scope.Close(Undefined());
+		isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Could not retrieve current caps")));
+		return;
 	}
 	if(capng_update(action, type, cap)) {
-		ThrowException(Exception::Error(String::New("Could not update caps")));
-		return scope.Close(Undefined());
+		isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Could not update caps")));
+		return;
 	}
-	if(capng_apply(CAPNG_SELECT_BOTH)) {
-		return scope.Close(False());
-	}
-	return scope.Close(True());
+
+	bool success = !capng_apply(CAPNG_SELECT_BOTH);
+	info.GetReturnValue().Set(success);
 }
 
-Handle<Value> ClearCapabilities(const Arguments& args) {
-	HandleScope scope;
+void ClearCapabilities(const v8::FunctionCallbackInfo<v8::Value>& info) {
 	capng_clear(CAPNG_SELECT_BOTH);
-	if(capng_apply(CAPNG_SELECT_BOTH)) {
-		return scope.Close(False());
-	}
-	return scope.Close(True());
+	bool success = !capng_apply(CAPNG_SELECT_BOTH);
+	info.GetReturnValue().Set(success);
 }
 
-Handle<Value> GetCapabilities(const Arguments& args) {
-	HandleScope scope;
+void GetCapabilities(const v8::FunctionCallbackInfo<v8::Value>& info) {
+	Isolate *isolate = info.GetIsolate();
+	EscapableHandleScope scope(isolate);
 
-	if(args.Length() < 1) {
-		ThrowException(Exception::TypeError(String::New("Wrong number of arguments")));
-		return scope.Close(Undefined());
+	if(info.Length() < 1) {
+		isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+		return;
 	}
 
 	capng_type_t type;
-	if(!CheckCapType(args[0], type)) {
-		return scope.Close(Undefined());
+	if(!CheckCapType(isolate, info[0], type)) {
+		return;
 	}
 
 	if(capng_get_caps_process()) {
-		ThrowException(Exception::Error(String::New("Could not retrieve current caps")));
-		return scope.Close(Undefined());
+		isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Could not retrieve current caps")));
+		return;
 	}
 
 	char *buf = capng_print_caps_text(CAPNG_PRINT_BUFFER, type);
 	if(!buf) {
-		ThrowException(Exception::Error(String::New("Could not get cap string")));
-		return scope.Close(Undefined());
+		isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Could not get cap string")));
+		return;
 	}
-	Local<String> str = String::New(buf);
+	Local<String> str = String::NewFromUtf8(isolate, buf);
 	delete buf;
-	return scope.Close(str);
+	info.GetReturnValue().Set(scope.Escape(str));
 }
 
 void Init(Handle<Object> target) {
+	Isolate *isolate = Isolate::GetCurrent();
 	// functions
-	target->Set(String::NewSymbol("has_cap"), FunctionTemplate::New(HaveCapability)->GetFunction());
-	target->Set(String::NewSymbol("set_cap"), FunctionTemplate::New(SetCapability)->GetFunction());
-	target->Set(String::NewSymbol("clear_caps"), FunctionTemplate::New(ClearCapabilities)->GetFunction());
-	target->Set(String::NewSymbol("get_caps"), FunctionTemplate::New(GetCapabilities)->GetFunction());
+	target->Set(String::NewFromUtf8(isolate, "has_cap", String::kInternalizedString), FunctionTemplate::New(isolate, HaveCapability)->GetFunction());
+	target->Set(String::NewFromUtf8(isolate, "set_cap", String::kInternalizedString), FunctionTemplate::New(isolate, SetCapability)->GetFunction());
+	target->Set(String::NewFromUtf8(isolate, "clear_caps", String::kInternalizedString), FunctionTemplate::New(isolate, ClearCapabilities)->GetFunction());
+	target->Set(String::NewFromUtf8(isolate, "get_caps", String::kInternalizedString), FunctionTemplate::New(isolate, GetCapabilities)->GetFunction());
 	// types
-	target->Set(String::NewSymbol("EFFECTIVE"), Uint32::New(CAPNG_EFFECTIVE));
-	target->Set(String::NewSymbol("PERMITTED"), Uint32::New(CAPNG_PERMITTED));
-	target->Set(String::NewSymbol("INHERITABLE"), Uint32::New(CAPNG_INHERITABLE));
-	target->Set(String::NewSymbol("ALL"), Uint32::New(CAPNG_EFFECTIVE | CAPNG_PERMITTED | CAPNG_INHERITABLE));
+	target->Set(String::NewFromUtf8(isolate, "EFFECTIVE", String::kInternalizedString), Uint32::New(isolate, CAPNG_EFFECTIVE));
+	target->Set(String::NewFromUtf8(isolate, "PERMITTED", String::kInternalizedString), Uint32::New(isolate, CAPNG_PERMITTED));
+	target->Set(String::NewFromUtf8(isolate, "INHERITABLE", String::kInternalizedString), Uint32::New(isolate, CAPNG_INHERITABLE));
+	target->Set(String::NewFromUtf8(isolate, "ALL", String::kInternalizedString), Uint32::New(isolate, CAPNG_EFFECTIVE | CAPNG_PERMITTED | CAPNG_INHERITABLE));
 	// caps
-	#define DEFINE_CAP(CAP) target->Set(String::NewSymbol(#CAP), Uint32::New(CAP))
+	#define DEFINE_CAP(CAP) target->Set(String::NewFromUtf8(isolate, #CAP, String::kInternalizedString), Uint32::New(isolate, CAP))
 	DEFINE_CAP(CAP_CHOWN);
 	DEFINE_CAP(CAP_DAC_OVERRIDE);
 	DEFINE_CAP(CAP_DAC_READ_SEARCH);
